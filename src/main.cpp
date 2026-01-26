@@ -1,9 +1,28 @@
-#include <M5StickC.h>
+// ボード別インクルード
+#ifdef BOARD_M5STICKC
+    #include <M5StickC.h>
+#else
+    #include <Arduino.h>
+    #include <Wire.h>
+#endif
+
 #include <BleGamepad.h>
 #include "JoyStick.h"
 
+// I2Cピン定義（未定義の場合のデフォルト）
+#ifndef I2C_SDA
+    #define I2C_SDA 32  // M5StickC Grove
+#endif
+#ifndef I2C_SCL
+    #define I2C_SCL 33  // M5StickC Grove
+#endif
+
 // BLEゲームパッド設定
-BleGamepad bleGamepad("M5StickC JoyPad", "M5Stack", 100);
+#ifdef BOARD_M5STICKC
+    BleGamepad bleGamepad("M5StickC JoyPad", "M5Stack", 100);
+#else
+    BleGamepad bleGamepad("XIAO JoyPad", "Seeed", 100);
+#endif
 
 // JoyStickインスタンス
 JoyStick joystick;
@@ -15,6 +34,7 @@ bool prevButton = false;
 
 // 画面表示更新
 void updateDisplay(bool connected, int16_t x, int16_t y, bool btn) {
+#ifdef BOARD_M5STICKC
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(0, 0);
     M5.Lcd.setTextSize(1);
@@ -35,9 +55,14 @@ void updateDisplay(bool connected, int16_t x, int16_t y, bool btn) {
     M5.Lcd.printf("X: %6d\n", x);
     M5.Lcd.printf("Y: %6d\n", y);
     M5.Lcd.printf("Btn: %s\n", btn ? "ON" : "OFF");
+#else
+    // XIAO ESP32S3: シリアル出力のみ（LCDなし）
+    (void)connected; (void)x; (void)y; (void)btn;  // 未使用警告抑制
+#endif
 }
 
 void setup() {
+#ifdef BOARD_M5STICKC
     // M5StickC初期化
     M5.begin();
     M5.Lcd.setRotation(3);
@@ -45,27 +70,37 @@ void setup() {
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("Starting...");
+#endif
 
     Serial.begin(115200);
+#ifdef BOARD_M5STICKC
     Serial.println("M5StickC BLE JoyStick Controller");
+#else
+    Serial.println("XIAO ESP32S3 BLE JoyStick Controller");
+#endif
 
-    // I2C初期化（Grove端子: SDA=32, SCL=33）
-    Wire.begin(32, 33);
+    // I2C初期化（ボード別ピン）
+    Wire.begin(I2C_SDA, I2C_SCL);
     joystick.begin(Wire);
 
     // JoyStickキャリブレーション
+#ifdef BOARD_M5STICKC
     M5.Lcd.fillScreen(BLACK);
     M5.Lcd.setCursor(0, 20);
     M5.Lcd.setTextSize(1);
     M5.Lcd.println("Calibrating...");
     M5.Lcd.println("Keep stick neutral");
+#endif
+    Serial.println("Calibrating... Keep stick neutral");
 
     joystick.calibrate();
 
     Serial.printf("Calibration done: CenterX=%d, CenterY=%d\n",
                   joystick.getCenterX(), joystick.getCenterY());
 
+#ifdef BOARD_M5STICKC
     M5.Lcd.printf("Center: %d,%d\n", joystick.getCenterX(), joystick.getCenterY());
+#endif
     delay(500);
 
     // BLEゲームパッド初期化
@@ -96,16 +131,23 @@ void setup() {
 static unsigned long debugCount = 0;
 
 void loop() {
+#ifdef BOARD_M5STICKC
     M5.update();
+#endif
 
     // JoyStick読み取り
     joystick.update();
     int16_t x = joystick.getAxisX();
     int16_t y = joystick.getAxisY();
 
+    // ボタン取得（ボード別）
+#ifdef BOARD_M5STICKC
     // M5StickCの本体ボタン(BtnA)をゲームパッドボタンとして使用
-    // (JoyStickのボタンは常に0を返すため)
     bool button = M5.BtnA.isPressed();
+#else
+    // XIAO ESP32S3: JoyStickのボタンを使用
+    bool button = joystick.isPressed();
+#endif
 
     // 定期的なデバッグ出力（500ms間隔）
     static unsigned long lastDebug = 0;
