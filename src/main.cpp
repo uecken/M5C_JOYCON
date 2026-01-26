@@ -17,6 +17,21 @@
     #define I2C_SCL 33  // M5StickC Grove
 #endif
 
+// XIAO用LED定義（BLE接続状態表示用）
+#if defined(BOARD_XIAO_ESP32C3)
+    #define STATUS_LED_PIN 10   // XIAO ESP32C3 内蔵LED (D10)
+    #define LED_ON LOW          // アクティブLOW
+    #define LED_OFF HIGH
+#elif defined(BOARD_XIAO_ESP32C6)
+    #define STATUS_LED_PIN 15   // XIAO ESP32C6 内蔵LED
+    #define LED_ON LOW          // アクティブLOW
+    #define LED_OFF HIGH
+#elif defined(BOARD_XIAO_ESP32S3)
+    #define STATUS_LED_PIN 21   // XIAO ESP32S3 ユーザーLED (D0)
+    #define LED_ON LOW          // アクティブLOW
+    #define LED_OFF HIGH
+#endif
+
 // BLEゲームパッド設定
 #ifdef BOARD_M5STICKC
     BleGamepad bleGamepad("M5StickC JoyPad", "M5Stack", 100);
@@ -31,6 +46,29 @@ JoyStick joystick;
 int16_t prevX = 16383;
 int16_t prevY = 16383;
 bool prevButton = false;
+
+// XIAO用LED更新（BLE接続状態表示）
+// 接続時: LED点灯、未接続時: LED点滅
+void updateStatusLED(bool connected) {
+#ifdef STATUS_LED_PIN
+    static unsigned long lastBlink = 0;
+    static bool ledState = false;
+
+    if (connected) {
+        // 接続中: LED常時点灯
+        digitalWrite(STATUS_LED_PIN, LED_ON);
+    } else {
+        // 未接続: 500ms間隔で点滅
+        if (millis() - lastBlink > 500) {
+            ledState = !ledState;
+            digitalWrite(STATUS_LED_PIN, ledState ? LED_ON : LED_OFF);
+            lastBlink = millis();
+        }
+    }
+#else
+    (void)connected;
+#endif
+}
 
 // 画面表示更新
 void updateDisplay(bool connected, int16_t x, int16_t y, bool btn) {
@@ -70,6 +108,12 @@ void setup() {
     M5.Lcd.setTextColor(WHITE);
     M5.Lcd.setTextSize(2);
     M5.Lcd.println("Starting...");
+#endif
+
+#ifdef STATUS_LED_PIN
+    // XIAO用ステータスLED初期化
+    pinMode(STATUS_LED_PIN, OUTPUT);
+    digitalWrite(STATUS_LED_PIN, LED_OFF);
 #endif
 
     Serial.begin(115200);
@@ -181,6 +225,9 @@ void loop() {
             Serial.printf("[SENT] X=%d Y=%d Btn=%d\n", x, y, button);
         }
     }
+
+    // LED更新（XIAO: BLE接続状態表示）
+    updateStatusLED(bleGamepad.isConnected());
 
     // 画面更新（200ms間隔）
     static unsigned long lastDisplay = 0;
