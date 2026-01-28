@@ -110,9 +110,7 @@ pio device monitor
 
 ### Raspberry Pi接続例
 
-| BLE接続 | jstest-gtk動作確認 |
-|:-------:|:-----------------:|
-| ![BLE Connection](picture/M5C_joycon_with_raspi_connection.jpg) | ![jstest-gtk](picture/M5C_joycon_with_Raspi.jpg) |
+![jstest-gtk](picture/M5C_joycon_with_Raspi.jpg)
 
 ## 参考
 
