@@ -2,6 +2,10 @@
 
 M5StickC / XIAO ESP32 + Grove JoyStick を BLE ゲームパッドとして動作させるプロジェクト。
 
+| M5StickC + JoyStick | XIAO ESP32C6 + JoyStick |
+|:-------------------:|:-----------------------:|
+| ![M5StickC](picture/m5c_joycon.png) | ![XIAO ESP32C6](picture/xiaoc6_joycon.jpg) |
+
 ## 概要
 
 Grove端子に接続したJoyStickの入力をBluetooth Low Energy (BLE) HID Gamepadとして送信します。
